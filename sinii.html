@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Journey</title>
+    <style>
+        :root {
+            --gold: #d4af37;
+            --dark: #0a0a0a;
+            --glass: rgba(255, 255, 255, 0.08);
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            background-color: var(--dark);
+            color: white;
+            font-family: 'Georgia', serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #particleCanvas {
+            position: fixed;
+            top: 0; left: 0;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* --- Front Page & Game --- */
+        #frontPage {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle, #1a1a1a 0%, #0a0a0a 100%);
+            transition: transform 1.5s cubic-bezier(0.7, 0, 0.3, 1), opacity 1s;
+        }
+
+        .title-gold {
+            color: var(--gold);
+            font-size: clamp(2rem, 8vw, 3.5rem);
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        #heartLock {
+            position: relative;
+            width: 100px; height: 100px;
+            margin: 30px auto;
+            font-size: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            border: 2px solid var(--gold);
+            border-radius: 50%;
+            overflow: hidden;
+            user-select: none;
+            transition: transform 0.3s;
+        }
+
+        #heartLock:active { transform: scale(0.95); }
+
+        #heartFill {
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 100%; height: 0%;
+            background: var(--gold);
+            transition: height 0.1s linear;
+        }
+
+        #heartIcon { position: relative; z-index: 2; color: var(--gold); }
+        .heart-full #heartIcon { color: black; }
+
+        .sub-text { font-style: italic; color: #ccc; margin-bottom: 1rem; text-align: center; }
+        
+        #startSection { display: none; opacity: 0; text-align: center; }
+        .show-start { display: block !important; animation: fadeIn 1s forwards; }
+
+        /* --- Journey Slides --- */
+        .container {
+            position: relative;
+            z-index: 10;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .story-card {
+            position: absolute;
+            background: var(--glass);
+            backdrop-filter: blur(25px);
+            padding: 2.5rem;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 85%;
+            opacity: 0;
+            transform: scale(0.8) translateY(100px);
+            pointer-events: none;
+            transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .story-card.active { opacity: 1; transform: scale(1) translateY(0); pointer-events: all; }
+        .story-card.exit { opacity: 0; transform: scale(1.1) translateY(-120px); filter: blur(10px); }
+
+        .image-frame {
+            width: 100%;
+            height: 400px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background: #111;
+        }
+
+        .image-frame img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            /* Default: Centered for most images */
+            object-position: center; 
+        }
+
+        /* SPECIFIC REQUEST: Only the first image is top-aligned */
+        #slide-0 img {
+            object-position: top;
+        }
+
+        .text-content h2 { color: var(--gold); letter-spacing: 3px; margin: 10px 0; }
+        .text-content p { font-style: italic; line-height: 1.6; color: #ddd; min-height: 80px; font-size: 0.95rem; }
+
+        .btn-premium {
+            background: transparent;
+            color: var(--gold);
+            border: 1px solid var(--gold);
+            padding: 12px 35px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: 0.4s;
+            margin-top: 10px;
+        }
+
+        .btn-premium:hover { background: var(--gold); color: black; box-shadow: 0 0 20px rgba(212, 175, 55, 0.4); }
+
+        .hidden-page { transform: translateY(-100%); opacity: 0; pointer-events: none; }
+
+        @keyframes fadeIn { to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <canvas id="particleCanvas"></canvas>
+
+    <div id="frontPage">
+        <h1 class="title-gold">Happy Anniversary</h1>
+        
+        <div id="gameArea">
+            <p class="sub-text">Hold the heart to unlock our journey</p>
+            <div id="heartLock">
+                <div id="heartFill"></div>
+                <span id="heartIcon">❤</span>
+            </div>
+        </div>
+
+        <div id="startSection">
+            <p class="sub-text">Let's see how far we have gone</p>
+            <button class="btn-premium" onclick="startJourney()">START</button>
+        </div>
+    </div>
+
+    <div class="container" id="mainContainer"></div>
+
+    <script>
+        // Data for 9 Slides
+        const journeyData = [
+            { img: 'banxsini/pic1.jpg', title: "The Beginning", desc: "Of all the moments in my life, the day we met is my favorite beginning." },
+            { img: 'banxsini/pic2.jpg', title: "Growing Closer", desc: "Small talks turned into long nights. I realized then I was finding myself in you." },
+            { img: 'banxsini/pic3.jpg', title: "Pure Happiness", desc: "This photo captures the exact moment I realized I never wanted to be without you." },
+            { img: 'banxsini/pic4.jpg', title: "Through it All", desc: "Life isn't always easy, but with you, every challenge feels like a shared adventure." },
+            { img: 'banxsini/pic5.jpg', title: "Shared Dreams", desc: "We started building a world of our own here. A world filled with laughter and love." },
+            { img: 'banxsini/pic6.jpg', title: "The Little Things", desc: "It’s the quiet mornings and the way you look at me when you think I’m not noticing." },
+            { img: 'banxsini/pic7.jpg', title: "Unstoppable", desc: "Hand in hand, we’ve taken on the world. There is no path too long while we walk together." },
+            { img: 'banxsini/pic8.jpg', title: "My Best Friend", desc: "More than a partner, you are the keeper of my secrets and the heart of my joy." },
+            { img: 'banxsini/pic9.jpg', title: "To Forever", desc: "Nine chapters down, and a lifetime to go. My heart was, is, and always will be yours." }
+        ];
+
+
+        // 1. Build the Slides
+        const container = document.getElementById('mainContainer');
+        journeyData.forEach((data, index) => {
+            const card = document.createElement('div');
+            card.className = 'story-card';
+            card.id = `slide-${index}`;
+            card.innerHTML = `
+                <div class="image-frame">
+                    <img src="${data.img}" alt="Memory">
+                </div>
+                <div class="text-content">
+                    <h2>${data.title}</h2>
+                    <p>${data.desc}</p>
+                </div>
+                <button class="btn-premium" onclick="nextSlide(${index})">
+                    ${index === 8 ? 'REPLAY JOURNEY' : 'NEXT CHAPTER'}
+                </button>
+            `;
+            container.appendChild(card);
+        });
+
+        // 2. Heart Game Logic
+        let fillLevel = 0;
+        let isHolding = false;
+        let gameWon = false;
+        const heartLock = document.getElementById('heartLock');
+        const heartFill = document.getElementById('heartFill');
+
+        function runGame() {
+            if (isHolding && fillLevel < 100) fillLevel += 1.5;
+            else if (!isHolding && fillLevel > 0 && !gameWon) fillLevel -= 1;
+            
+            heartFill.style.height = fillLevel + '%';
+            if (fillLevel >= 100 && !gameWon) {
+                gameWon = true;
+                heartLock.classList.add('heart-full');
+                setTimeout(() => {
+                    document.getElementById('gameArea').style.display = 'none';
+                    document.getElementById('startSection').classList.add('show-start');
+                }, 400);
+            }
+            requestAnimationFrame(runGame);
+        }
+        runGame();
+
+        heartLock.addEventListener('mousedown', () => isHolding = true);
+        window.addEventListener('mouseup', () => isHolding = false);
+        heartLock.addEventListener('touchstart', (e) => { e.preventDefault(); isHolding = true; });
+        window.addEventListener('touchend', () => isHolding = false);
+
+        // 3. Navigation Logic
+        function startJourney() {
+            document.getElementById('frontPage').classList.add('hidden-page');
+            setTimeout(() => document.getElementById('slide-0').classList.add('active'), 800);
+        }
+
+        function nextSlide(index) {
+            const current = document.getElementById(`slide-${index}`);
+            current.classList.remove('active');
+            current.classList.add('exit');
+
+            let nextIdx = (index + 1) % 9;
+            const next = document.getElementById(`slide-${nextIdx}`);
+
+            if(nextIdx === 0) { // Reset all if replaying
+                journeyData.forEach((_, i) => document.getElementById(`slide-${i}`).classList.remove('exit'));
+            }
+
+            setTimeout(() => next.classList.add('active'), 600);
+        }
+
+        // 4. Background Particles
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        let dots = [];
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.onresize = resize; resize();
+        for(let i=0; i<60; i++) dots.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, v: Math.random()*0.4+0.1, s: Math.random()*2 });
+        function draw() {
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+            ctx.fillStyle = "rgba(212, 175, 55, 0.4)";
+            dots.forEach(d => { d.y -= d.v; if(d.y < 0) d.y = canvas.height; ctx.beginPath(); ctx.arc(d.x, d.y, d.s, 0, Math.PI*2); ctx.fill(); });
+            requestAnimationFrame(draw);
+        }
+        draw();
+    </script>
+</body>
+</html>
